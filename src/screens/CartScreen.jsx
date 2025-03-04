@@ -3,11 +3,31 @@ import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity } from 'react
 import { useCart } from './CartContext';  // Import the custom hook to access cart context
 
 const CartScreen = () => {
-  const { cart, removeFromCart } = useCart();  // Access the cart state and methods
+  const { cart, removeFromCart, updateItemQuantity } = useCart();  // Access the cart state and methods
 
   // Function to calculate the total amount
   const calculateTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
+    return cart.reduce((total, item) => total + item.price * item.selectedQuantity, 0).toFixed(2);
+  };
+
+  // Function to handle the quantity update, ensuring it doesn't exceed the available stock
+  const handleUpdateQuantity = (itemId, currentQuantity, increase) => {
+    const item = cart.find(i => i.id === itemId);
+    
+    // Check available stock (assuming `item.stock` holds the available stock)
+    if (increase) {
+      // Allow increase only if quantity is less than stock
+      if (currentQuantity < item.quantity) {
+        updateItemQuantity(itemId, currentQuantity + 1);
+      } else {
+        alert('You cannot add more than the available stock.');
+      }
+    } else {
+      // Decrease quantity but ensure it doesn't go below 1
+      if (currentQuantity > 1) {
+        updateItemQuantity(itemId, currentQuantity - 1);
+      }
+    }
   };
 
   // Render cart item
@@ -17,9 +37,28 @@ const CartScreen = () => {
       <View style={styles.cartItemDetails}>
         <Text style={styles.cartItemName}>{item.name}</Text>
         <Text style={styles.cartItemPrice}>${parseFloat(item.price).toFixed(2)}</Text>
-        <Text style={styles.cartItemQuantity}>Quantity: {item.quantity}</Text>
+        
+        {/* Quantity Controls */}
+        <View style={styles.quantityContainer}>
+          <TouchableOpacity
+            style={styles.quantityButton}
+            onPress={() => handleUpdateQuantity(item.id, item.selectedQuantity, false)} // Decrease quantity
+            disabled={item.quantity <= 1}  // Disable decrement if quantity is 1
+          >
+            <Text style={styles.quantityButtonText}>-</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.cartItemQuantity}>Quantity: {item.selectedQuantity}</Text>
+
+          <TouchableOpacity
+            style={styles.quantityButton}
+            onPress={() => handleUpdateQuantity(item.id, item.selectedQuantity, true)} // Increase quantity
+          >
+            <Text style={styles.quantityButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      
+
       <TouchableOpacity 
         style={styles.removeButton} 
         onPress={() => removeFromCart(item.id)}>
@@ -106,6 +145,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     marginTop: 5,
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  quantityButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  quantityButtonText: {
+    color: '#fff',
+    fontSize: 18,
   },
   removeButton: {
     backgroundColor: '#ff6347',
