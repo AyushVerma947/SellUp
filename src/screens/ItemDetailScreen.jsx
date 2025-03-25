@@ -12,6 +12,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
   const [buttonText, setButtonText] = useState("Add to Cart");
   const [selectedQuantity, setSelectedQuantity] = useState(1); 
   const [sellerId, setSellerId] = useState(null);  // Store Seller ID
+  const [sellerName, setSellerName] = useState("Loading...");
 
   const currentUser = auth().currentUser; // Get logged-in user (buyer)
 
@@ -102,6 +103,27 @@ const ItemDetailScreen = ({ route, navigation }) => {
     }
   };
   
+  useEffect(() => {
+    const fetchSellerName = async () => {
+      try {
+        const usersRef = firestore().collection("users");
+        const querySnapshot = await usersRef.where("email", "==", item.seller).get();
+
+        if (!querySnapshot.empty) {
+          const userData = querySnapshot.docs[0].data(); // Get first document data
+          setSellerName(userData.name || "Unknown Seller"); // If name exists, set it
+        } else {
+          setSellerName("Unknown Seller");
+        }
+      } catch (error) {
+        console.error("Error fetching seller name:", error);
+        setSellerName("Unknown Seller");
+      }
+    };
+
+    fetchSellerName();
+  }, [item.seller]);
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -129,7 +151,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
         <Text style={styles.itemDetail}>{item.quantity}</Text>
 
         <Text style={styles.itemDetailLabel}>Seller:</Text>
-        <Text style={styles.itemDetail}>{item.sellerEmail}</Text>
+        <Text style={styles.itemDetail}>{sellerName}</Text>
 
         {/* Quantity Selector */}
         <Text style={styles.itemDetailLabel}>Select Quantity:</Text>
