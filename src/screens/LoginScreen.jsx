@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback  } from "react";
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import auth from "@react-native-firebase/auth";
@@ -6,6 +6,9 @@ import firestore from "@react-native-firebase/firestore"; // Import Firestore
 import { webClientId } from '@env';
 
 const LoginScreen = ({ navigation }) => {
+
+
+
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: webClientId, 
@@ -13,7 +16,11 @@ const LoginScreen = ({ navigation }) => {
     });
   }, []);
 
-  const signInWithGoogle = async () => {
+  useEffect(() => {
+    auth().currentUser; // Pre-loads Firebase auth system
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
     try {
       console.log("🔍 Checking Google Play Services...");
       await GoogleSignin.hasPlayServices();
@@ -72,12 +79,14 @@ const LoginScreen = ({ navigation }) => {
         Alert.alert("Error", error.message || "An unknown error occurred.");
       }
     }
-  };
+  }
+  , [navigation]
+);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Google Sign-In</Text>
-      <TouchableOpacity style={styles.button} onPress={signInWithGoogle}>
+      <TouchableOpacity style={styles.button} onPress={signInWithGoogle} testID="login-button" >
         <Text style={styles.buttonText}>Sign in with Google</Text>
       </TouchableOpacity>
     </View>
@@ -91,4 +100,5 @@ const styles = StyleSheet.create({
   buttonText: { color: "#fff", fontWeight: "bold" },
 });
 
-export default LoginScreen;
+// export default LoginScreen;
+export default React.memo(LoginScreen);

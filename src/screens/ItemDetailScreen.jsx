@@ -6,7 +6,52 @@ import { useCart } from './CartContext';
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 
+import { accelerometer } from "react-native-sensors";
+import { useRef } from "react";
+import { Animated } from "react-native";
+
+
+import { PermissionsAndroid } from 'react-native';
+import { setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
+
+
 const ItemDetailScreen = ({ route, navigation }) => {
+  const scrollViewRef = useRef(null);
+const scrollY = useRef(0); // Track scroll position manually
+
+const requestPermission = async () => {
+  if (Platform.OS === "android") {
+    try {
+      const granted = await PermissionsAndroid.request(
+        "android.permission.HIGH_SAMPLING_RATE_SENSORS"
+      );
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        console.warn("Permission for HIGH_SAMPLING_RATE_SENSORS not granted!");
+      }
+    } catch (err) {
+      console.error("Permission request error:", err);
+    }
+  }
+};
+
+useEffect(() => {
+  requestPermission();
+
+  setUpdateIntervalForType(SensorTypes.accelerometer, 100); // Adjust interval (100ms)
+
+  const subscription = accelerometer.subscribe(({ y }) => {
+    if (scrollViewRef.current) {
+      const scrollSpeed = 20; // Adjust this value to change sensitivity
+      const scrollAmount = y * scrollSpeed; // Natural tilt-based scrolling
+
+      scrollY.current = Math.max(0, scrollY.current - scrollAmount); // Ensure no negative scroll
+      scrollViewRef.current.scrollTo({ y: scrollY.current, animated: true });
+    }
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
+
   const { item } = route.params;  
   const { cart, addToCart, updateItemQuantity } = useCart(); 
   const [buttonText, setButtonText] = useState("Add to Cart");
@@ -129,7 +174,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.container}>
         <Image source={{ uri: item.image }} style={styles.itemImage} />
         
         <Text style={styles.itemName}>{item.name}</Text>
